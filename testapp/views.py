@@ -7,7 +7,9 @@ from rest_framework.generics import ListAPIView, RetrieveAPIView
 # ============================
 # 📘 READING TEST VIEWS
 # ============================
-
+class MockListView(ListAPIView):
+    queryset = Mock.objects.all()
+    serializer_class = MockSerializer
 # Reading testlar ro‘yxati
 class ReadingTestListView(ListAPIView):
     queryset = ReadingTest.objects.all()
