@@ -1,12 +1,27 @@
 from django.contrib import admin
 from .models import (
     Mock,
+    # Reading
     ReadingTest, Passage, ReadingQuestion, ReadingTable, ReadingTableRow, ReadingTableAnswer,
+    # Speaking
     SpeakingTest, SpeakingPart1Question, SpeakingPart2CueCard, SpeakingPart3Question,
+    # Writing
     WritingTest, WritingTask1, WritingTask2,
+    # Listening
     ListeningTest, AudioSection, ListeningQuestion,
     ListeningTable, ListeningTableRow, ListeningTableAnswer
 )
+
+# =========================================
+# MOCK ADMIN
+# =========================================
+@admin.register(Mock)
+class MockAdmin(admin.ModelAdmin):
+    list_display = ("title", "number", "created_at")
+    search_fields = ("title",)
+    list_filter = ("created_at",)
+    filter_horizontal = ("reading_tests", "listening_tests", "speaking_tests", "writing_tests")
+
 
 # =========================================
 # READING ADMIN
@@ -72,14 +87,6 @@ class ReadingTableAnswerAdmin(admin.ModelAdmin):
     list_display = ['table', 'number', 'correct_answer']
     search_fields = ['correct_answer']
     ordering = ['table', 'number']
-
-
-# =========================================
-# MOCK ADMIN
-# =========================================
-@admin.register(Mock)
-class MockAdmin(admin.ModelAdmin):
-    list_display = ['title', 'number', 'created_at']
 
 
 # =========================================
