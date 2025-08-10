@@ -2,6 +2,7 @@ from django.urls import path
 from .views import *
 
 urlpatterns = [
+    path('api/mock/',MockListView.as_view(),name="mock"),
     # === Reading Tests ===
     path('api/reading-tests/', ReadingTestListView.as_view(), name='reading-tests'),
     path('api/reading-tests/<int:test_id>/passages/', ReadingTestPassageListView.as_view(), name='reading-test-passages'),
