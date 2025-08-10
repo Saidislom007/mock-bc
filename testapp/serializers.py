@@ -1,10 +1,16 @@
 from rest_framework import serializers
 from .models import *
 
+
+class MockSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Mock
+        fields = '__all__'
+
 # Reading
 class QuestionSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Question
+        model = ReadingQuestion
         fields = '__all__'
 
 class PassageSerializer(serializers.ModelSerializer):
