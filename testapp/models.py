@@ -9,8 +9,14 @@ class Mock(models.Model):
     number = models.IntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
 
+    reading_tests = models.ManyToManyField('ReadingTest', blank=True, related_name='mocks')
+    listening_tests = models.ManyToManyField('ListeningTest', blank=True, related_name='mocks')
+    speaking_tests = models.ManyToManyField('SpeakingTest', blank=True, related_name='mocks')
+    writing_tests = models.ManyToManyField('WritingTest', blank=True, related_name='mocks')
+
     def __str__(self):
         return self.title
+
 
 
 # =========================================
