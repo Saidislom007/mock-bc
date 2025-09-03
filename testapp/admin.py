@@ -1,5 +1,6 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 from .models import (
     Mock,
     # Reading
@@ -19,26 +20,27 @@ from .models import (
 # =========================================
 @admin.register(Mock)
 class MockAdmin(admin.ModelAdmin):
-    list_display = ("title", "number", "status", "exam_date", "created_at")
+    list_display = ("title", "number", "status", "exam_date", "is_open_today", "created_at")
     search_fields = ("title",)
     list_filter = ("status", "exam_date", "created_at")
     filter_horizontal = ("reading_tests", "listening_tests", "speaking_tests", "writing_tests")
     ordering = ["-created_at"]
+    readonly_fields = ("created_at",)
 
     def save_model(self, request, obj, form, change):
-        """
-        - Faqat bitta Mock active bo‘lsin.
-        - Agar exam_date tugagan bo‘lsa avtomatik inactive bo‘lsin.
-        """
-        # deadline check
-        if obj.exam_date and obj.exam_date < timezone.now():
+        # exam date o‘tgan bo‘lsa -> inactive
+        if obj.exam_date and obj.exam_date < timezone.now().date():
             obj.status = "inactive"
 
-        # only one active
+        # faqat bitta active qolsin
         if obj.status == "active":
             Mock.objects.exclude(pk=obj.pk).filter(status="active").update(status="inactive")
 
-        super().save_model(request, obj, form, change)
+        try:
+            obj.full_clean()
+            super().save_model(request, obj, form, change)
+        except ValidationError as e:
+            self.message_user(request, f"Xato: {e}", level=messages.ERROR)
 
 
 # =========================================
@@ -50,8 +52,8 @@ class QuestionInline(admin.TabularInline):
     show_change_link = True
     fields = (
         'question_number', 'question_type', 'question_text',
-        'options', 'summary_text', 'diagram_labels',
-        'paragraph_mapping', 'correct_answer'
+        'options', 'diagram_labels', 'paragraph_mapping',
+        'correct_answer'
     )
 
 
@@ -64,6 +66,7 @@ class PassageInline(admin.StackedInline):
 @admin.register(ReadingTest)
 class ReadingTestAdmin(admin.ModelAdmin):
     list_display = ['title', 'duration_minutes', 'created_at']
+    readonly_fields = ['created_at']
     inlines = [PassageInline]
 
 
@@ -77,10 +80,14 @@ class PassageAdmin(admin.ModelAdmin):
 
 @admin.register(ReadingQuestion)
 class ReadingQuestionAdmin(admin.ModelAdmin):
-    list_display = ['question_number', 'question_type', 'passage']
+    list_display = ['question_number', 'question_type', 'passage', 'linked_question_display']
     list_filter = ['question_type', 'passage__test']
     search_fields = ['question_text', 'correct_answer']
     ordering = ['passage', 'question_number']
+
+    def linked_question_display(self, obj):
+        return obj.linked_question_id or "-"
+    linked_question_display.short_description = "Linked Q"
 
 
 class ReadingTableRowInline(admin.TabularInline):
@@ -100,20 +107,6 @@ class ReadingTableAdmin(admin.ModelAdmin):
     list_display = ['question']
     search_fields = ['question__question_text']
     inlines = [ReadingTableRowInline, ReadingTableAnswerInline]
-
-
-@admin.register(ReadingTableRow)
-class ReadingTableRowAdmin(admin.ModelAdmin):
-    list_display = ['table', 'order']
-    search_fields = ['row_data']
-    ordering = ['table', 'order']
-
-
-@admin.register(ReadingTableAnswer)
-class ReadingTableAnswerAdmin(admin.ModelAdmin):
-    list_display = ['table', 'number', 'correct_answer']
-    search_fields = ['correct_answer']
-    ordering = ['table', 'number']
 
 
 # =========================================
@@ -138,25 +131,8 @@ class SpeakingPart3Inline(admin.TabularInline):
 @admin.register(SpeakingTest)
 class SpeakingTestAdmin(admin.ModelAdmin):
     list_display = ['title', 'created_at']
+    readonly_fields = ['created_at']
     inlines = [SpeakingPart1Inline, SpeakingPart2Inline, SpeakingPart3Inline]
-
-
-@admin.register(SpeakingPart1Question)
-class SpeakingPart1QuestionAdmin(admin.ModelAdmin):
-    list_display = ['test', 'question_text']
-    search_fields = ['question_text']
-
-
-@admin.register(SpeakingPart2CueCard)
-class SpeakingPart2CueCardAdmin(admin.ModelAdmin):
-    list_display = ['test', 'topic']
-    search_fields = ['topic', 'description']
-
-
-@admin.register(SpeakingPart3Question)
-class SpeakingPart3QuestionAdmin(admin.ModelAdmin):
-    list_display = ['test', 'question_text']
-    search_fields = ['question_text']
 
 
 # =========================================
@@ -177,19 +153,8 @@ class WritingTask2Inline(admin.StackedInline):
 @admin.register(WritingTest)
 class WritingTestAdmin(admin.ModelAdmin):
     list_display = ['title', 'created_at']
+    readonly_fields = ['created_at']
     inlines = [WritingTask1Inline, WritingTask2Inline]
-
-
-@admin.register(WritingTask1)
-class WritingTask1Admin(admin.ModelAdmin):
-    list_display = ['test']
-    search_fields = ['question_text']
-
-
-@admin.register(WritingTask2)
-class WritingTask2Admin(admin.ModelAdmin):
-    list_display = ['test']
-    search_fields = ['question_text']
 
 
 # =========================================
@@ -235,10 +200,14 @@ class AudioSectionAdmin(admin.ModelAdmin):
 
 @admin.register(ListeningQuestion)
 class ListeningQuestionAdmin(admin.ModelAdmin):
-    list_display = ['section', 'question_number', 'question_type', 'has_table']
+    list_display = ['section', 'question_number', 'question_type', 'linked_question_display', 'has_table']
     list_filter = ['question_type', 'section__test']
     search_fields = ['question_text']
     ordering = ['section', 'question_number']
+
+    def linked_question_display(self, obj):
+        return getattr(obj, "linked_question_id", None) or "-"
+    linked_question_display.short_description = "Linked Q"
 
     def has_table(self, obj):
         return hasattr(obj, 'table')
@@ -263,17 +232,3 @@ class ListeningTableAdmin(admin.ModelAdmin):
     list_display = ['question']
     search_fields = ['question__question_text']
     inlines = [ListeningTableRowInline, ListeningTableAnswerInline]
-
-
-@admin.register(ListeningTableRow)
-class ListeningTableRowAdmin(admin.ModelAdmin):
-    list_display = ['table', 'order']
-    search_fields = ['row_data']
-    ordering = ['table', 'order']
-
-
-@admin.register(ListeningTableAnswer)
-class ListeningTableAnswerAdmin(admin.ModelAdmin):
-    list_display = ['table', 'number', 'correct_answer']
-    search_fields = ['correct_answer']
-    ordering = ['table', 'number']
