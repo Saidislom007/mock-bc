@@ -1,12 +1,26 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 
 
 # =========================================
 # MOCK TEST MODEL
 # =========================================
 class Mock(models.Model):
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("active", "Active"),
+        ("inactive", "Inactive"),
+    ]
+
     title = models.CharField(max_length=255)
-    number = models.IntegerField()
+    number = models.PositiveIntegerField(unique=True)
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="pending"
+    )
+    description = models.TextField(blank=True, null=True)
+    duration_minutes = models.PositiveIntegerField(default=120)
     created_at = models.DateTimeField(auto_now_add=True)
 
     reading_tests = models.ManyToManyField('ReadingTest', blank=True, related_name='mocks')
@@ -14,9 +28,22 @@ class Mock(models.Model):
     speaking_tests = models.ManyToManyField('SpeakingTest', blank=True, related_name='mocks')
     writing_tests = models.ManyToManyField('WritingTest', blank=True, related_name='mocks')
 
-    def __str__(self):
-        return self.title
+    class Meta:
+        ordering = ['-created_at']
 
+    def clean(self):
+        """Faqat bitta mock active bo‘lishiga ruxsat beramiz"""
+        if self.status == "active":
+            active_mocks = Mock.objects.filter(status="active").exclude(id=self.id)
+            if active_mocks.exists():
+                raise ValidationError("Faqat bitta Mock test active bo‘lishi mumkin!")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()  # validatsiya ishlaydi
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.title} ({self.get_status_display()})"
 
 
 # =========================================
@@ -57,9 +84,9 @@ class ReadingQuestion(models.Model):
         ('true_false_not_given', 'True/False/Not Given'),
         ('matching_headings', 'Matching Headings'),
         ('sentence_completion', 'Sentence Completion'),
-        ('summary_completion', 'Summary Completion'),
         ('diagram_labeling', 'Diagram Labeling'),
-        ('short_answer', 'Short Answer'),
+        ('table_completion', 'Table Completion'),
+        ('two_multiple_choice', 'Two Multiple Choice'),
     ]
 
     instruction = models.TextField(blank=True, null=True)
@@ -146,28 +173,45 @@ class ReadingTableAnswer(models.Model):
 # SPEAKING TEST MODELS
 # =========================================
 class SpeakingTest(models.Model):
+    """
+    IELTS Speaking test (Part 1, Part 2, Part 3)
+    """
     title = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.title
+        return f"Speaking Test: {self.title}"
 
 
-class SpeakingPart1Question(models.Model):
+class BaseQuestion(models.Model):
+    """
+    Abstract model for Part 1 and Part 3 questions.
+    """
     test = models.ForeignKey(
         SpeakingTest,
-        on_delete=models.CASCADE,
-        related_name='part1_questions'
+        on_delete=models.CASCADE
     )
-    title = models.TextField(default='')
+    title = models.CharField(max_length=255, blank=True, default='')
     question_text = models.TextField()
+
+    class Meta:
+        abstract = True
+
+
+class SpeakingPart1Question(BaseQuestion):
+    class Meta:
+        verbose_name = "Speaking Part 1 Question"
+        verbose_name_plural = "Speaking Part 1 Questions"
 
     def __str__(self):
         return f"Part 1 - {self.question_text[:50]}"
 
 
 class SpeakingPart2CueCard(models.Model):
-    test = models.ForeignKey(
+    """
+    Part 2 — faqat 1 ta cue card bo‘ladi.
+    """
+    test = models.OneToOneField(
         SpeakingTest,
         on_delete=models.CASCADE,
         related_name='part2_cue_card'
@@ -181,14 +225,10 @@ class SpeakingPart2CueCard(models.Model):
         return f"Part 2 - {self.topic}"
 
 
-class SpeakingPart3Question(models.Model):
-    test = models.ForeignKey(
-        SpeakingTest,
-        on_delete=models.CASCADE,
-        related_name='part3_questions'
-    )
-    title = models.TextField(default='')
-    question_text = models.TextField()
+class SpeakingPart3Question(BaseQuestion):
+    class Meta:
+        verbose_name = "Speaking Part 3 Question"
+        verbose_name_plural = "Speaking Part 3 Questions"
 
     def __str__(self):
         return f"Part 3 - {self.question_text[:50]}"
@@ -283,13 +323,12 @@ class AudioSection(models.Model):
 class ListeningQuestion(models.Model):
     QUESTION_TYPES = [
         ('multiple_choice', 'Multiple Choice'),
-        ('form_completion', 'Form Completion'),
         ('table_completion', 'Table Completion'),
-        ('note_completion', 'Note Completion'),
         ('map_labelling', 'Map Labelling'),
-        ('matching', 'Matching'),
         ('sentence_completion', 'Sentence Completion'),
-        ('short_answer', 'Short Answer'),
+        ('two_multiple_choice', 'Two Multiple Choice'),
+        ('true_false_not_given', 'True/False/Not Given'),
+        ('matching_headings', 'Matching Headings'),
     ]
 
     section = models.ForeignKey(
