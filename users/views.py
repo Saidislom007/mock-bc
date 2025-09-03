@@ -16,7 +16,6 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
-
 class TestResultViewSet(viewsets.ModelViewSet):
     """
     Test natijalarini yaratish, ko'rish, tahrirlash, o'chirish uchun.
@@ -24,15 +23,15 @@ class TestResultViewSet(viewsets.ModelViewSet):
     queryset = TestResult.objects.all()
     serializer_class = TestResultSerializer
 
-    @action(detail=False, methods=['get'], url_path='by-user-info')
+    @action(detail=False, methods=['post'], url_path='by-user-info')
     def get_by_user_info(self, request):
         """
         Ism, familiya va otasining ismi orqali foydalanuvchining test natijalarini olish.
-        GET parametrlari: name, last_name, middle_name
+        POST body parametrlari: name, last_name, middle_name
         """
-        name = request.query_params.get('name')
-        last_name = request.query_params.get('last_name')
-        middle_name = request.query_params.get('middle_name')
+        name = request.data.get('name')
+        last_name = request.data.get('last_name')
+        middle_name = request.data.get('middle_name')
 
         if not all([name, last_name, middle_name]):
             return Response(
@@ -44,6 +43,7 @@ class TestResultViewSet(viewsets.ModelViewSet):
         results = TestResult.objects.filter(user=user)
         serializer = self.get_serializer(results, many=True)
         return Response(serializer.data)
+
 
 
 class OverallScoreViewSet(viewsets.ReadOnlyModelViewSet):
