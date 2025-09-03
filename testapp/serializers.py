@@ -2,23 +2,36 @@ from rest_framework import serializers
 from .models import *
 
 
+# =========================================
+# MOCK
+# =========================================
 class MockSerializer(serializers.ModelSerializer):
+    reading_tests = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    listening_tests = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    speaking_tests = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    writing_tests = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+
     class Meta:
         model = Mock
         fields = '__all__'
 
-# Reading
-class QuestionSerializer(serializers.ModelSerializer):
+
+# =========================================
+# READING
+# =========================================
+class ReadingQuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = ReadingQuestion
         fields = '__all__'
 
+
 class PassageSerializer(serializers.ModelSerializer):
-    questions = QuestionSerializer(many=True, read_only=True)
+    questions = ReadingQuestionSerializer(many=True, read_only=True)
 
     class Meta:
         model = Passage
         fields = '__all__'
+
 
 class ReadingTestSerializer(serializers.ModelSerializer):
     passages = PassageSerializer(many=True, read_only=True)
@@ -28,21 +41,26 @@ class ReadingTestSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-# Speaking
+# =========================================
+# SPEAKING
+# =========================================
 class SpeakingPart1QuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = SpeakingPart1Question
         fields = '__all__'
+
 
 class SpeakingPart2CueCardSerializer(serializers.ModelSerializer):
     class Meta:
         model = SpeakingPart2CueCard
         fields = '__all__'
 
+
 class SpeakingPart3QuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = SpeakingPart3Question
         fields = '__all__'
+
 
 class SpeakingTestSerializer(serializers.ModelSerializer):
     part1_questions = SpeakingPart1QuestionSerializer(many=True, read_only=True)
@@ -54,16 +72,20 @@ class SpeakingTestSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-# Writing
+# =========================================
+# WRITING
+# =========================================
 class WritingTask1Serializer(serializers.ModelSerializer):
     class Meta:
         model = WritingTask1
         fields = '__all__'
 
+
 class WritingTask2Serializer(serializers.ModelSerializer):
     class Meta:
         model = WritingTask2
         fields = '__all__'
+
 
 class WritingTestSerializer(serializers.ModelSerializer):
     task1 = WritingTask1Serializer(many=True, read_only=True)
@@ -73,21 +95,22 @@ class WritingTestSerializer(serializers.ModelSerializer):
         model = WritingTest
         fields = '__all__'
 
-# Listening - Table Answer
+
+# =========================================
+# LISTENING (Tables)
+# =========================================
 class ListeningTableAnswerSerializer(serializers.ModelSerializer):
     class Meta:
         model = ListeningTableAnswer
         fields = ['id', 'number', 'correct_answer']
 
 
-# Listening - Table Row
 class ListeningTableRowSerializer(serializers.ModelSerializer):
     class Meta:
         model = ListeningTableRow
         fields = ['id', 'order', 'row_data']
 
 
-# Listening - Table
 class ListeningTableSerializer(serializers.ModelSerializer):
     rows = ListeningTableRowSerializer(many=True, read_only=True)
     answers = ListeningTableAnswerSerializer(many=True, read_only=True)
@@ -96,7 +119,10 @@ class ListeningTableSerializer(serializers.ModelSerializer):
         model = ListeningTable
         fields = ['id', 'columns', 'rows', 'answers']
 
-# Listening
+
+# =========================================
+# LISTENING (Questions & Sections)
+# =========================================
 class ListeningQuestionSerializer(serializers.ModelSerializer):
     table = ListeningTableSerializer(read_only=True)
 
@@ -112,7 +138,7 @@ class ListeningQuestionSerializer(serializers.ModelSerializer):
             'options',
             'correct_answer',
             'map_image',
-            'table',  # <--- Qo‘shildi
+            'table',
         ]
 
 
@@ -123,12 +149,16 @@ class AudioSectionSerializer(serializers.ModelSerializer):
         model = AudioSection
         fields = '__all__'
 
+
 class ListeningTestSerializer(serializers.ModelSerializer):
     sections = AudioSectionSerializer(many=True, read_only=True)
 
     class Meta:
         model = ListeningTest
         fields = '__all__'
+
+
+# Soddalashtirilgan variant (faqat section-level)
 class ListeningSectionSerializer(serializers.ModelSerializer):
     questions = ListeningQuestionSerializer(many=True, read_only=True)
 
