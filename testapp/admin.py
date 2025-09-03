@@ -84,6 +84,7 @@ class ReadingQuestionAdmin(admin.ModelAdmin):
     list_filter = ['question_type', 'passage__test']
     search_fields = ['question_text', 'correct_answer']
     ordering = ['passage', 'question_number']
+    readonly_fields = ('linked_question',)  # qo‘lda tahrirlanmasin
 
     def linked_question_display(self, obj):
         return obj.linked_question_id or "-"
@@ -204,6 +205,7 @@ class ListeningQuestionAdmin(admin.ModelAdmin):
     list_filter = ['question_type', 'section__test']
     search_fields = ['question_text']
     ordering = ['section', 'question_number']
+    readonly_fields = ('linked_question',)  # faqat ko‘rish uchun
 
     def linked_question_display(self, obj):
         return getattr(obj, "linked_question_id", None) or "-"
