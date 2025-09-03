@@ -379,9 +379,20 @@ class ListeningQuestion(models.Model):
         help_text="Only used for map labelling questions"
     )
 
+    # ✅ qo‘shildi: two_multiple_choice uchun bog‘langan savol
+    linked_question = models.OneToOneField(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="parent_question",
+        help_text="Two Multiple Choice uchun bog‘langan savol"
+    )
+
     class Meta:
         ordering = ['question_number']
         unique_together = ('section', 'question_number')
+
     def save(self, *args, **kwargs):
         creating = self._state.adding  # yangi yaratilayotganini tekshiramiz
         super().save(*args, **kwargs)
@@ -390,7 +401,7 @@ class ListeningQuestion(models.Model):
         if creating and self.question_type == "two_multiple_choice" and not self.linked_question:
             second_question = ListeningQuestion.objects.create(
                 instruction=self.instruction,
-                passage=self.section,
+                section=self.section,   # ✅ to‘g‘rilandi
                 question_type="two_multiple_choice",
                 question_text=f"{self.question_text}",
                 question_number=self.question_number + 1,
@@ -399,6 +410,7 @@ class ListeningQuestion(models.Model):
             )
             self.linked_question = second_question
             super().save(update_fields=["linked_question"])
+
     def __str__(self):
         return f"{self.section} - Q{self.question_number}"
 
