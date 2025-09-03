@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 
 
 # =========================================
@@ -21,6 +22,7 @@ class Mock(models.Model):
     )
     description = models.TextField(blank=True, null=True)
     duration_minutes = models.PositiveIntegerField(default=120)
+    exam_date = models.DateField(help_text="Imtihon sanasi. Faqat shu kunda aktiv bo‘ladi.")
     created_at = models.DateTimeField(auto_now_add=True)
 
     reading_tests = models.ManyToManyField('ReadingTest', blank=True, related_name='mocks')
@@ -38,12 +40,19 @@ class Mock(models.Model):
             if active_mocks.exists():
                 raise ValidationError("Faqat bitta Mock test active bo‘lishi mumkin!")
 
+        if self.exam_date < timezone.now().date():
+            raise ValidationError("Imtihon sanasi o'tmishda bo‘lishi mumkin emas!")
+
+    def is_open_today(self):
+        """Bugungi kunda test ochiqmi?"""
+        return self.status == "active" and self.exam_date == timezone.now().date()
+
     def save(self, *args, **kwargs):
         self.full_clean()  # validatsiya ishlaydi
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.title} ({self.get_status_display()})"
+        return f"{self.title} ({self.get_status_display()} | {self.exam_date})"
 
 
 # =========================================
@@ -101,7 +110,6 @@ class ReadingQuestion(models.Model):
         help_text="Question number in the test"
     )
 
-    # Optional fields depending on question type
     options = models.JSONField(blank=True, null=True)
     summary_text = models.TextField(blank=True, null=True)
     diagram_labels = models.JSONField(blank=True, null=True)
@@ -173,9 +181,6 @@ class ReadingTableAnswer(models.Model):
 # SPEAKING TEST MODELS
 # =========================================
 class SpeakingTest(models.Model):
-    """
-    IELTS Speaking test (Part 1, Part 2, Part 3)
-    """
     title = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -184,9 +189,6 @@ class SpeakingTest(models.Model):
 
 
 class BaseQuestion(models.Model):
-    """
-    Abstract model for Part 1 and Part 3 questions.
-    """
     test = models.ForeignKey(
         SpeakingTest,
         on_delete=models.CASCADE
@@ -208,9 +210,6 @@ class SpeakingPart1Question(BaseQuestion):
 
 
 class SpeakingPart2CueCard(models.Model):
-    """
-    Part 2 — faqat 1 ta cue card bo‘ladi.
-    """
     test = models.OneToOneField(
         SpeakingTest,
         on_delete=models.CASCADE,
