@@ -1,11 +1,10 @@
-from rest_framework import generics
+from django.shortcuts import get_object_or_404
+from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.exceptions import NotFound
-from rest_framework.response import Response
 from django.utils import timezone
 
 from .models import *
 from .serializers import *
-from rest_framework.generics import ListAPIView, RetrieveAPIView
 
 
 # ============================
@@ -15,7 +14,20 @@ class ActiveMockMixin:
     """Faqat active va bugungi Mock ni olish"""
     def get_active_mock(self):
         today = timezone.now().date()
-        mock = Mock.objects.filter(status="active", exam_date=today).first()
+        mock = (
+            Mock.objects
+            .filter(status="active", exam_date=today)
+            .prefetch_related(
+                "reading_tests__passages__questions",
+                "listening_tests__sections__questions",
+                "speaking_tests__part1_questions",
+                "speaking_tests__part2_cue_card",
+                "speaking_tests__part3_questions",
+                "writing_tests__task1",
+                "writing_tests__task2",
+            )
+            .first()
+        )
         if not mock:
             raise NotFound("Bugungi kunda active mock mavjud emas.")
         return mock
@@ -42,20 +54,18 @@ class ReadingTestPassageListView(ListAPIView):
     serializer_class = PassageSerializer
 
     def get_queryset(self):
-        test_id = self.kwargs['test_id']
-        return Passage.objects.filter(test_id=test_id).order_by('order')
+        return Passage.objects.filter(test__id=self.kwargs["test_id"]).order_by("order")
 
 
 class ReadingTestSinglePassageView(RetrieveAPIView):
     serializer_class = PassageSerializer
 
     def get_object(self):
-        test_id = self.kwargs['test_id']
-        order = self.kwargs['order']
-        try:
-            return Passage.objects.get(test_id=test_id, order=order)
-        except Passage.DoesNotExist:
-            raise NotFound("Passage not found for this test and order.")
+        return get_object_or_404(
+            Passage,
+            test__id=self.kwargs["test_id"],
+            order=self.kwargs["order"]
+        )
 
 
 # ============================
@@ -95,9 +105,8 @@ class ListeningSectionDetailView(RetrieveAPIView):
     serializer_class = ListeningSectionSerializer
 
     def get_object(self):
-        test_id = self.kwargs['test_id']
-        section_number = self.kwargs['section_number']
-        try:
-            return AudioSection.objects.get(test__id=test_id, section_number=section_number)
-        except AudioSection.DoesNotExist:
-            raise NotFound("Section not found.")
+        return get_object_or_404(
+            AudioSection,
+            test__id=self.kwargs["test_id"],
+            section_number=self.kwargs["section_number"]
+        )
