@@ -100,7 +100,7 @@ class ReadingQuestion(models.Model):
 
     instruction = models.TextField(blank=True, null=True)
     passage = models.ForeignKey(
-        Passage,
+        "Passage",
         on_delete=models.CASCADE,
         related_name='questions'
     )
@@ -110,7 +110,7 @@ class ReadingQuestion(models.Model):
         help_text="Question number in the test"
     )
 
-    options = models.JSONField(blank=True, null=True)
+    options = models.JSONField(blank=True, null=True)  # ["A. Text", "B. Text", ...]
     diagram_labels = models.ImageField(
         upload_to='reading/diagram_labels/',
         blank=True,
@@ -119,41 +119,15 @@ class ReadingQuestion(models.Model):
     paragraph_mapping = models.JSONField(blank=True, null=True)
 
     correct_answer = models.JSONField(
-        help_text="Correct answer(s), format depends on question type"
-    )
-
-    linked_question = models.OneToOneField(
-        "self",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="parent_question",
-        help_text="Two Multiple Choice uchun bog‘langan savol"
+        help_text="Correct answer(s). Example: ['A'] or ['A','C'] for two_multiple_choice"
     )
 
     class Meta:
         ordering = ['question_number']
 
-    def save(self, *args, **kwargs):
-        creating = self._state.adding  # yangi yaratilayotganini tekshiramiz
-        super().save(*args, **kwargs)
-
-        # Agar yangi two_multiple_choice bo'lsa - ikkinchi savol yaratamiz
-        if creating and self.question_type == "two_multiple_choice" and not self.linked_question:
-            second_question = ReadingQuestion.objects.create(
-                instruction=self.instruction,
-                passage=self.passage,
-                question_type="two_multiple_choice",
-                question_text=f"{self.question_text}",
-                question_number=self.question_number + 1,
-                options=self.options,
-                correct_answer=self.correct_answer,
-            )
-            self.linked_question = second_question
-            super().save(update_fields=["linked_question"])
-
     def __str__(self):
         return f"{self.passage.title} - Q{self.question_number}: {self.question_type}"
+
 
 class ReadingTable(models.Model):
     question = models.OneToOneField(
@@ -360,16 +334,16 @@ class ListeningQuestion(models.Model):
     ]
 
     section = models.ForeignKey(
-        AudioSection,
+        "AudioSection",
         on_delete=models.CASCADE,
         related_name='questions'
     )
     question_number = models.PositiveIntegerField()
     question_type = models.CharField(max_length=50, choices=QUESTION_TYPES)
     question_text = models.TextField(blank=True, null=True)
-    options = models.JSONField(blank=True, null=True)
+    options = models.JSONField(blank=True, null=True)  # ["A. Text", "B. Text", ...]
     correct_answer = models.JSONField(
-        help_text="Correct answer(s), format depends on question type"
+        help_text="Correct answer(s). Example: ['B'] or ['A','C'] for two_multiple_choice"
     )
     instruction = models.TextField(blank=True, null=True)
     map_image = models.ImageField(
@@ -379,37 +353,9 @@ class ListeningQuestion(models.Model):
         help_text="Only used for map labelling questions"
     )
 
-    # ✅ qo‘shildi: two_multiple_choice uchun bog‘langan savol
-    linked_question = models.OneToOneField(
-        "self",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="parent_question",
-        help_text="Two Multiple Choice uchun bog‘langan savol"
-    )
-
     class Meta:
         ordering = ['question_number']
         unique_together = ('section', 'question_number')
-
-    def save(self, *args, **kwargs):
-        creating = self._state.adding  # yangi yaratilayotganini tekshiramiz
-        super().save(*args, **kwargs)
-
-        # Agar yangi two_multiple_choice bo'lsa - ikkinchi savol yaratamiz
-        if creating and self.question_type == "two_multiple_choice" and not self.linked_question:
-            second_question = ListeningQuestion.objects.create(
-                instruction=self.instruction,
-                section=self.section,   # ✅ to‘g‘rilandi
-                question_type="two_multiple_choice",
-                question_text=f"{self.question_text}",
-                question_number=self.question_number + 1,
-                options=self.options,
-                correct_answer=self.correct_answer,
-            )
-            self.linked_question = second_question
-            super().save(update_fields=["linked_question"])
 
     def __str__(self):
         return f"{self.section} - Q{self.question_number}"
