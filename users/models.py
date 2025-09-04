@@ -48,24 +48,30 @@ class OverallScore(models.Model):
             return 8.5
         elif correct_answers >= 35:
             return 8.0
-        elif correct_answers >= 32:
+        elif correct_answers >= 33:
             return 7.5
         elif correct_answers >= 30:
             return 7.0
-        elif correct_answers >= 26:
+        elif correct_answers >= 27:
             return 6.5
         elif correct_answers >= 23:
             return 6.0
-        elif correct_answers >= 18:
+        elif correct_answers >= 19:
             return 5.5
-        elif correct_answers >= 16:
+        elif correct_answers >= 15:
             return 5.0
         elif correct_answers >= 13:
             return 4.5
         elif correct_answers >= 10:
             return 4.0
-        else:
+        elif correct_answers >= 8:
             return 3.5
+        elif correct_answers >= 6:
+            return 3.0
+        elif correct_answers >= 4:
+            return 2.5
+        else:
+            return 0.0
 
     def round_band(self, score):
         decimal = float(score) % 1
