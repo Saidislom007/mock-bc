@@ -28,24 +28,32 @@ class OverallScoreInline(admin.StackedInline):
         if not obj:
             return "No data"
 
-        labels = ["Reading", "Listening", "Speaking", "Writing"]
-        values = [obj.reading_band, obj.listening_band, obj.speaking_band, obj.writing_band]
+        try:
+            labels = ["Reading", "Listening", "Speaking", "Writing"]
+            values = [
+                float(obj.reading_band or 0),
+                float(obj.listening_band or 0),
+                float(obj.speaking_band or 0),
+                float(obj.writing_band or 0),
+            ]
 
-        fig, ax = plt.subplots(figsize=(3, 2))
-        ax.bar(labels, values, color=["#007bff", "#28a745", "#ffc107", "#dc3545"])
-        ax.set_ylim(0, 9)
-        ax.set_ylabel("Band")
-        plt.tight_layout()
+            fig, ax = plt.subplots(figsize=(3, 2))
+            ax.bar(labels, values, color=["#007bff", "#28a745", "#ffc107", "#dc3545"])
+            ax.set_ylim(0, 9)
+            ax.set_ylabel("Band")
+            plt.tight_layout()
 
-        buffer = BytesIO()
-        plt.savefig(buffer, format="png")
-        buffer.seek(0)
-        image_png = buffer.getvalue()
-        buffer.close()
-        plt.close(fig)  # memory leak bo‘lmasligi uchun yopib qo‘yish
+            buffer = BytesIO()
+            plt.savefig(buffer, format="png")
+            buffer.seek(0)
+            image_png = buffer.getvalue()
+            buffer.close()
+            plt.close(fig)  # memory leak oldini olish
 
-        chart = base64.b64encode(image_png).decode("utf-8")
-        return format_html('<img src="data:image/png;base64,{}" />', chart)
+            chart = base64.b64encode(image_png).decode("utf-8")
+            return format_html('<img src="data:image/png;base64,{}" />', chart)
+        except Exception:
+            return "Chart Error"
 
     band_chart_inline.short_description = "Band Diagram"
 
@@ -57,7 +65,7 @@ class UserAdmin(admin.ModelAdmin):
     search_fields = ['name', 'last_name', 'phone']
 
     def user_tests(self, obj):
-        return obj.test_results.count()
+        return obj.test_results.count() if hasattr(obj, "test_results") else 0
     user_tests.short_description = "Number of Tests"
 
 
@@ -107,7 +115,9 @@ class OverallScoreAdmin(admin.ModelAdmin):
 
     def band_preview(self, obj):
         """Overall band rangli badge"""
-        score = obj.overall_band
+        score = getattr(obj, "overall_band", None)
+        if score is None:
+            return "-"
         color = "#28a745" if score >= 6.5 else "#ffc107" if score >= 5 else "#dc3545"
         return format_html(
             '<span style="padding:4px 10px; background:{}; color:white; border-radius:5px;">{}</span>',
@@ -117,23 +127,31 @@ class OverallScoreAdmin(admin.ModelAdmin):
 
     def band_chart(self, obj):
         """Reading/Listening/Speaking/Writing uchun mini diagramma (bar chart)"""
-        labels = ["Reading", "Listening", "Speaking", "Writing"]
-        values = [obj.reading_band, obj.listening_band, obj.speaking_band, obj.writing_band]
+        try:
+            labels = ["Reading", "Listening", "Speaking", "Writing"]
+            values = [
+                float(obj.reading_band or 0),
+                float(obj.listening_band or 0),
+                float(obj.speaking_band or 0),
+                float(obj.writing_band or 0),
+            ]
 
-        fig, ax = plt.subplots(figsize=(3, 2))
-        ax.bar(labels, values, color=["#007bff", "#28a745", "#ffc107", "#dc3545"])
-        ax.set_ylim(0, 9)
-        ax.set_ylabel("Band")
-        plt.tight_layout()
+            fig, ax = plt.subplots(figsize=(3, 2))
+            ax.bar(labels, values, color=["#007bff", "#28a745", "#ffc107", "#dc3545"])
+            ax.set_ylim(0, 9)
+            ax.set_ylabel("Band")
+            plt.tight_layout()
 
-        buffer = BytesIO()
-        plt.savefig(buffer, format="png")
-        buffer.seek(0)
-        image_png = buffer.getvalue()
-        buffer.close()
-        plt.close(fig)  # memory leak bo‘lmasligi uchun yopib qo‘yish
+            buffer = BytesIO()
+            plt.savefig(buffer, format="png")
+            buffer.seek(0)
+            image_png = buffer.getvalue()
+            buffer.close()
+            plt.close(fig)
 
-        chart = base64.b64encode(image_png).decode("utf-8")
-        return format_html('<img src="data:image/png;base64,{}" />', chart)
+            chart = base64.b64encode(image_png).decode("utf-8")
+            return format_html('<img src="data:image/png;base64,{}" />', chart)
+        except Exception:
+            return "Chart Error"
 
     band_chart.short_description = "Band Diagram"
