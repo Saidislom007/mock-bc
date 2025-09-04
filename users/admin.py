@@ -1,5 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
+import matplotlib
+matplotlib.use("Agg")  # headless serverlarda ishlashi uchun
 import matplotlib.pyplot as plt
 import base64
 from io import BytesIO
@@ -7,7 +9,7 @@ from io import BytesIO
 from .models import User, TestResult, OverallScore
 
 
-# ================= INLINE ==================
+# ============ INLINE ===============
 class OverallScoreInline(admin.StackedInline):
     model = OverallScore
     can_delete = False
@@ -27,12 +29,7 @@ class OverallScoreInline(admin.StackedInline):
             return "No data"
 
         labels = ["Reading", "Listening", "Speaking", "Writing"]
-        values = [
-            obj.reading_band,
-            obj.listening_band,
-            obj.speaking_band,
-            obj.writing_band
-        ]
+        values = [obj.reading_band, obj.listening_band, obj.speaking_band, obj.writing_band]
 
         fig, ax = plt.subplots(figsize=(3, 2))
         ax.bar(labels, values, color=["#007bff", "#28a745", "#ffc107", "#dc3545"])
@@ -45,7 +42,7 @@ class OverallScoreInline(admin.StackedInline):
         buffer.seek(0)
         image_png = buffer.getvalue()
         buffer.close()
-        plt.close(fig)  # ✅ memory leak bo‘lmasligi uchun
+        plt.close(fig)  # memory leak bo‘lmasligi uchun yopib qo‘yish
 
         chart = base64.b64encode(image_png).decode("utf-8")
         return format_html('<img src="data:image/png;base64,{}" />', chart)
@@ -53,31 +50,18 @@ class OverallScoreInline(admin.StackedInline):
     band_chart_inline.short_description = "Band Diagram"
 
 
-# ================= USER ADMIN ==================
+# ============ USER ADMIN ===============
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    list_display = ['name', 'last_name', 'phone', 'total_tests', 'latest_score']
+    list_display = ['name', 'last_name', 'phone', 'user_tests']
     search_fields = ['name', 'last_name', 'phone']
-    ordering = ['last_name', 'name']
 
-    def total_tests(self, obj):
+    def user_tests(self, obj):
         return obj.test_results.count()
-    total_tests.short_description = "Number of Tests"
-
-    def latest_score(self, obj):
-        last_result = obj.test_results.order_by('-test_date').first()
-        if not last_result or not hasattr(last_result, "overall_score"):
-            return "-"
-        score = last_result.overall_score.overall_band
-        color = "#28a745" if score >= 6.5 else "#ffc107" if score >= 5 else "#dc3545"
-        return format_html(
-            '<span style="padding:4px 10px; background:{}; color:white; border-radius:5px;">{}</span>',
-            color, score
-        )
-    latest_score.short_description = "Latest Overall Band"
+    user_tests.short_description = "Number of Tests"
 
 
-# ================= TEST RESULT ADMIN ==================
+# ============ TEST RESULT ADMIN ===============
 @admin.register(TestResult)
 class TestResultAdmin(admin.ModelAdmin):
     list_display = ['user', 'test_date', 'overall_band_preview']
@@ -85,7 +69,6 @@ class TestResultAdmin(admin.ModelAdmin):
     list_filter = ['test_date']
     date_hierarchy = 'test_date'
     inlines = [OverallScoreInline]
-    ordering = ['-test_date']
 
     def overall_band_preview(self, obj):
         score = getattr(obj.overall_score, 'overall_band', None)
@@ -99,7 +82,7 @@ class TestResultAdmin(admin.ModelAdmin):
     overall_band_preview.short_description = "Overall Band"
 
 
-# ================= OVERALL SCORE ADMIN ==================
+# ============ OVERALL SCORE ADMIN ===============
 @admin.register(OverallScore)
 class OverallScoreAdmin(admin.ModelAdmin):
     list_display = [
@@ -109,7 +92,8 @@ class OverallScoreAdmin(admin.ModelAdmin):
         'speaking_band',
         'writing_band',
         'overall_band',
-        'band_preview'
+        'band_preview',
+        'band_chart'
     ]
     search_fields = ['test_result__user__name', 'test_result__user__last_name']
     readonly_fields = [
@@ -120,7 +104,6 @@ class OverallScoreAdmin(admin.ModelAdmin):
         'overall_band',
         'band_chart'
     ]
-    ordering = ['-overall_band']
 
     def band_preview(self, obj):
         """Overall band rangli badge"""
@@ -135,12 +118,7 @@ class OverallScoreAdmin(admin.ModelAdmin):
     def band_chart(self, obj):
         """Reading/Listening/Speaking/Writing uchun mini diagramma (bar chart)"""
         labels = ["Reading", "Listening", "Speaking", "Writing"]
-        values = [
-            obj.reading_band,
-            obj.listening_band,
-            obj.speaking_band,
-            obj.writing_band
-        ]
+        values = [obj.reading_band, obj.listening_band, obj.speaking_band, obj.writing_band]
 
         fig, ax = plt.subplots(figsize=(3, 2))
         ax.bar(labels, values, color=["#007bff", "#28a745", "#ffc107", "#dc3545"])
@@ -153,7 +131,7 @@ class OverallScoreAdmin(admin.ModelAdmin):
         buffer.seek(0)
         image_png = buffer.getvalue()
         buffer.close()
-        plt.close(fig)  # ✅ memory leak oldini olish
+        plt.close(fig)  # memory leak bo‘lmasligi uchun yopib qo‘yish
 
         chart = base64.b64encode(image_png).decode("utf-8")
         return format_html('<img src="data:image/png;base64,{}" />', chart)
