@@ -20,9 +20,11 @@ class ActiveMockMixin:
             .prefetch_related(
                 "reading_tests__passages__questions",
                 "listening_tests__sections__questions",
-                "speaking_tests__part1_questions",
+                # 🔽 Speaking uchun related_name berilmagan, shuning uchun default ishlatamiz
+                "speaking_tests__speakingpart1question_set",
                 "speaking_tests__part2_cue_card",
-                "speaking_tests__part3_questions",
+                "speaking_tests__speakingpart3question_set",
+                # 🔽 Writing uchun
                 "writing_tests__task1",
                 "writing_tests__task2",
             )
