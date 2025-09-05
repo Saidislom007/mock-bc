@@ -18,13 +18,15 @@ class ActiveMockMixin:
             Mock.objects
             .filter(status="active", exam_date=today)
             .prefetch_related(
+                # 📘 Reading
                 "reading_tests__passages__questions",
+                # 🎧 Listening
                 "listening_tests__sections__questions",
-                # 🔽 Speaking uchun related_name berilmagan, shuning uchun default ishlatamiz
-                "speaking_tests__speakingpart1question_set",
-                "speaking_tests__part2_cue_card",
-                "speaking_tests__speakingpart3question_set",
-                # 🔽 Writing uchun
+                # 🎙️ Speaking
+                "speaking_tests__part1__questions",   # Part 1 + savollari
+                "speaking_tests__part2",              # Part 2 cue card
+                "speaking_tests__part3__questions",   # Part 3 + savollari
+                # ✍️ Writing
                 "writing_tests__task1",
                 "writing_tests__task2",
             )
