@@ -47,30 +47,48 @@ class ReadingTestSerializer(serializers.ModelSerializer):
 class SpeakingPart1QuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = SpeakingPart1Question
-        fields = '__all__'
+        fields = ["id", "question_text"]
 
 
+class SpeakingPart1Serializer(serializers.ModelSerializer):
+    questions = SpeakingPart1QuestionSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = SpeakingPart1
+        fields = ["id", "topic", "questions"]
+
+
+# Part 2
 class SpeakingPart2CueCardSerializer(serializers.ModelSerializer):
     class Meta:
         model = SpeakingPart2CueCard
-        fields = '__all__'
+        fields = ["id", "topic", "description"]
 
 
+# Part 3
 class SpeakingPart3QuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = SpeakingPart3Question
-        fields = '__all__'
+        fields = ["id", "question_text"]
 
 
+class SpeakingPart3Serializer(serializers.ModelSerializer):
+    questions = SpeakingPart3QuestionSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = SpeakingPart3
+        fields = ["id", "topic", "questions"]
+
+
+# Test
 class SpeakingTestSerializer(serializers.ModelSerializer):
-    part1_questions = SpeakingPart1QuestionSerializer(many=True, read_only=True)
-    # ❌ many=True emas, chunki OneToOneField
-    part2_cue_card = SpeakingPart2CueCardSerializer(read_only=True)
-    part3_questions = SpeakingPart3QuestionSerializer(many=True, read_only=True)
+    part1 = SpeakingPart1Serializer(read_only=True)
+    part2 = SpeakingPart2CueCardSerializer(read_only=True)
+    part3 = SpeakingPart3Serializer(read_only=True)
 
     class Meta:
         model = SpeakingTest
-        fields = '__all__'
+        fields = ["id", "title", "created_at", "part1", "part2", "part3"]
 
 
 # =========================================
