@@ -7,10 +7,13 @@ from .models import (
     # Listening
     ListeningTest, AudioSection, ListeningQuestion, ListeningTable, ListeningTableRow, ListeningTableAnswer,
     # Speaking
-    SpeakingTest, SpeakingPart1Question, SpeakingPart2CueCard, SpeakingPart3Question,
+    SpeakingTest, SpeakingPart1Question, SpeakingPart2CueCard, SpeakingPart3Question, SpeakingPart3,SpeakingPart1,
     # Writing
     WritingTest, WritingTask1, WritingTask2
 )
+
+
+
 
 # =============================
 # READING
@@ -208,34 +211,65 @@ class ListeningTestAdmin(admin.ModelAdmin):
 # SPEAKING
 # =============================
 
+
 @admin.register(SpeakingTest)
 class SpeakingTestAdmin(admin.ModelAdmin):
     list_display = ("title", "created_at")
     search_fields = ("title",)
 
 
+# Part 1
+class SpeakingPart1QuestionInline(admin.TabularInline):
+    model = SpeakingPart1Question
+    extra = 1
+
+
+@admin.register(SpeakingPart1)
+class SpeakingPart1Admin(admin.ModelAdmin):
+    list_display = ("test", "topic")
+    inlines = [SpeakingPart1QuestionInline]
+
+
 @admin.register(SpeakingPart1Question)
 class SpeakingPart1QuestionAdmin(admin.ModelAdmin):
-    list_display = ("test", "short_question")
+    list_display = ("get_test", "short_question")
     search_fields = ("question_text",)
-    autocomplete_fields = ("test",)
+
+    def get_test(self, obj):
+        return obj.part1.test
+    get_test.short_description = "Test"
 
     def short_question(self, obj):
         return obj.question_text[:50] + "..." if len(obj.question_text) > 50 else obj.question_text
 
 
+# Part 2
 @admin.register(SpeakingPart2CueCard)
 class SpeakingPart2CueCardAdmin(admin.ModelAdmin):
     list_display = ("test", "topic")
     search_fields = ("topic", "description")
-    autocomplete_fields = ("test",)
+
+
+# Part 3
+class SpeakingPart3QuestionInline(admin.TabularInline):
+    model = SpeakingPart3Question
+    extra = 1
+
+
+@admin.register(SpeakingPart3)
+class SpeakingPart3Admin(admin.ModelAdmin):
+    list_display = ("test", "topic")
+    inlines = [SpeakingPart3QuestionInline]
 
 
 @admin.register(SpeakingPart3Question)
 class SpeakingPart3QuestionAdmin(admin.ModelAdmin):
-    list_display = ("test", "short_question")
+    list_display = ("get_test", "short_question")
     search_fields = ("question_text",)
-    autocomplete_fields = ("test",)
+
+    def get_test(self, obj):
+        return obj.part3.test
+    get_test.short_description = "Test"
 
     def short_question(self, obj):
         return obj.question_text[:50] + "..." if len(obj.question_text) > 50 else obj.question_text
