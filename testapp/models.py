@@ -191,32 +191,37 @@ class SpeakingTest(models.Model):
         return f"Speaking Test: {self.title}"
 
 
-class BaseQuestion(models.Model):
-    test = models.ForeignKey(
+# Part 1
+class SpeakingPart1(models.Model):
+    test = models.OneToOneField(
         SpeakingTest,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        related_name="part1"
     )
-    title = models.CharField(max_length=255, blank=True, default='')
-    question_text = models.TextField()
-
-    class Meta:
-        abstract = True
-
-
-class SpeakingPart1Question(BaseQuestion):
-    class Meta:
-        verbose_name = "Speaking Part 1 Question"
-        verbose_name_plural = "Speaking Part 1 Questions"
+    topic = models.CharField(max_length=255)
 
     def __str__(self):
-        return f"Part 1 - {self.question_text[:50]}"
+        return f"Part 1 - {self.topic}"
 
 
+class SpeakingPart1Question(models.Model):
+    part1 = models.ForeignKey(
+        SpeakingPart1,
+        on_delete=models.CASCADE,
+        related_name="questions"
+    )
+    question_text = models.TextField()
+
+    def __str__(self):
+        return f"{self.question_text[:50]}"
+
+
+# Part 2
 class SpeakingPart2CueCard(models.Model):
     test = models.OneToOneField(
         SpeakingTest,
         on_delete=models.CASCADE,
-        related_name='part2_cue_card'
+        related_name="part2"
     )
     topic = models.CharField(max_length=255)
     description = models.TextField(
@@ -227,14 +232,29 @@ class SpeakingPart2CueCard(models.Model):
         return f"Part 2 - {self.topic}"
 
 
-class SpeakingPart3Question(BaseQuestion):
-    class Meta:
-        verbose_name = "Speaking Part 3 Question"
-        verbose_name_plural = "Speaking Part 3 Questions"
+# Part 3
+
+class SpeakingPart3(models.Model):
+    test = models.OneToOneField(
+        SpeakingTest,
+        on_delete=models.CASCADE,
+        related_name="part3"
+    )
+    topic = models.CharField(max_length=255)
 
     def __str__(self):
-        return f"Part 3 - {self.question_text[:50]}"
+        return f"Part 3 - {self.topic}"
+    
+class SpeakingPart3Question(models.Model):
+    part3 = models.ForeignKey(
+        SpeakingPart3,
+        on_delete=models.CASCADE,
+        related_name="questions"
+    )
+    question_text = models.TextField()
 
+    def __str__(self):
+        return f"{self.question_text[:50]}"
 
 # =========================================
 # WRITING TEST MODELS
