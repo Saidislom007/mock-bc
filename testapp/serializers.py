@@ -64,7 +64,8 @@ class SpeakingPart3QuestionSerializer(serializers.ModelSerializer):
 
 class SpeakingTestSerializer(serializers.ModelSerializer):
     part1_questions = SpeakingPart1QuestionSerializer(many=True, read_only=True)
-    part2_cue_card = SpeakingPart2CueCardSerializer(many=True, read_only=True)
+    # ❌ many=True emas, chunki OneToOneField
+    part2_cue_card = SpeakingPart2CueCardSerializer(read_only=True)
     part3_questions = SpeakingPart3QuestionSerializer(many=True, read_only=True)
 
     class Meta:
@@ -88,8 +89,9 @@ class WritingTask2Serializer(serializers.ModelSerializer):
 
 
 class WritingTestSerializer(serializers.ModelSerializer):
-    task1 = WritingTask1Serializer(many=True, read_only=True)
-    task2 = WritingTask2Serializer(many=True, read_only=True)
+    # ❌ many=True emas, chunki OneToOneField
+    task1 = WritingTask1Serializer(read_only=True)
+    task2 = WritingTask2Serializer(read_only=True)
 
     class Meta:
         model = WritingTest
