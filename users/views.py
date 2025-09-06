@@ -66,6 +66,7 @@ class TestResultViewSet(viewsets.ModelViewSet):
 class OverallScoreViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Overall score faqat ko‘rish uchun (read-only).
+    Foydalanuvchi fullname yuborganida uning barcha band scorelari qaytadi.
     """
     queryset = OverallScore.objects.all()
     serializer_class = OverallScoreSerializer
@@ -73,7 +74,7 @@ class OverallScoreViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=False, methods=['post'], url_path='by-user-info')
     def get_by_user_info(self, request):
         """
-        Foydalanuvchining fullname orqali uning overall band scorelarini olish.
+        Foydalanuvchining fullname orqali uning band scorelarini olish.
         POST body parametrlari: name, last_name, middle_name
         """
         name = request.data.get("name")
@@ -86,7 +87,7 @@ class OverallScoreViewSet(viewsets.ReadOnlyModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # User topamiz
+        # Userni topamiz
         user = get_object_or_404(
             User, name=name, last_name=last_name, middle_name=middle_name
         )
@@ -102,5 +103,11 @@ class OverallScoreViewSet(viewsets.ReadOnlyModelViewSet):
                 "last_name": user.last_name,
                 "middle_name": user.middle_name,
             },
-            "overall_score": serializer.data
+            "band_scores": {
+                "reading": serializer.data.get("reading_band"),
+                "listening": serializer.data.get("listening_band"),
+                "speaking": serializer.data.get("speaking_band"),
+                "writing": serializer.data.get("writing_band"),
+            },
+            "overall_band": serializer.data.get("overall_band"),
         })
